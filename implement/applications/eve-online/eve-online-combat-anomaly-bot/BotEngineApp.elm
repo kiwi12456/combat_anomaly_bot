@@ -462,13 +462,7 @@ decideNextActionWhenInSpace context seeUndockingComplete =
                                 describeBranch "Looks like we are not in an anomaly." returnDronesAndEnterAnomalyOrWait
                             Just accelerationGateInOverview ->
                                 describeBranch "Acceleration Gate Found! Entering..."
-                                (warpToOverviewEntryIfFarEnough context accelerationGateInOverview
-                                    |> Maybe.withDefault
-                                        (returnDronesToBay context.readingFromGameClient
-                                            |> Maybe.withDefault
-                                                (describeBranch "No drones to return." continueIfCombatComplete)
-                                        )
-                                )
+                                (warpToOverviewEntryIfFarEnough context accelerationGateInOverview)
                         
 
                     Just anomalyID ->
@@ -1106,20 +1100,16 @@ warpToOverviewEntryIfFarEnough : BotDecisionContext -> OverviewWindowEntry -> Ma
 warpToOverviewEntryIfFarEnough context destinationOverviewEntry =
     case destinationOverviewEntry.objectDistanceInMeters of
         Ok distanceInMeters ->
-            if distanceInMeters <= 150000 then
-                Nothing
-
-            else
-                Just
-                    (describeBranch "Far enough to use Warp"
-                        (returnDronesToBay context.readingFromGameClient
-                            |> Maybe.withDefault
-                                (useContextMenuCascadeOnOverviewEntry
-                                    (useMenuEntryWithTextEqual "Lock target" menuCascadeCompleted)
-                                    destinationOverviewEntry
-                                )
-                        )
+            Just
+                (describeBranch "Far enough to use Warp"
+                    (returnDronesToBay context.readingFromGameClient
+                        |> Maybe.withDefault
+                            (useContextMenuCascadeOnOverviewEntry
+                                (useMenuEntryWithTextEqual "Activate Gate" menuCascadeCompleted)
+                                destinationOverviewEntry
+                            )
                     )
+                )
 
         Err error ->
             Just (describeBranch ("Failed to read the distance: " ++ error) askForHelpToGetUnstuck)
