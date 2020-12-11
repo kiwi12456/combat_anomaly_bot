@@ -1056,7 +1056,7 @@ nothingFromIntIfGreaterThan limit originalInt =
     else
         Just originalInt
 
-targetAccelerationGate : BotDecisionContext -> DecisionPathNode
+targetAccelerationGate : BotDecisionContext -> OverviewWindowEntry -> DecisionPathNode
 targetAccelerationGate context overviewEntriesToAttack =
     case context.readingFromGameClient |> topmostAccelerationGateFromOverviewWindow of
         Nothing ->
@@ -1114,4 +1114,3 @@ warpToOverviewEntryIfFarEnough context destinationOverviewEntry =
 
         Err error ->
             Just (describeBranch ("Failed to read the distance: " ++ error) askForHelpToGetUnstuck)
-            
