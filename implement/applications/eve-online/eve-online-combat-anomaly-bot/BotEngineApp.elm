@@ -91,7 +91,7 @@ defaultBotSettings =
     , anomalyNames = []
     , ratsToAvoid = []
     , maxTargetCount = 3
-    , botStepDelayMilliseconds = 1400
+    , botStepDelayMilliseconds = 3000
     }
 
 
@@ -545,10 +545,20 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                     [] ->
                                         describeBranch "I see no overview entry to lock."
                                             (if overviewEntriesToAttack |> List.isEmpty then
-                                                returnDronesToBay context.readingFromGameClient
-                                                    |> Maybe.withDefault
-                                                        (describeBranch "No drones to return." continueIfCombatComplete)
-
+                                                case context.readingFromGameClient |> overviewWindowEntryRepresentsAccelerationGate of
+                                                    False ->
+                                                        returnDronesToBay context.readingFromGameClient
+                                                            |> Maybe.withDefault
+                                                                (describeBranch "No drones to return." continueIfCombatComplete)
+                                                    True ->
+                                                        Maybe.withDefault
+                                                            (useContextMenuCascadeOnOverviewEntry
+                                                                (useMenuEntryWithTextContaining "Warp to Within"
+                                                                    (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
+                                                                )
+                                                                destinationOverviewEntry
+                                                                context.readingFromGameClient
+                                                            )
                                              else
                                                 describeBranch "Wait for target locking to complete." waitForProgressInGame
                                             )
@@ -1062,3 +1072,8 @@ nothingFromIntIfGreaterThan limit originalInt =
 
     else
         Just originalInt
+
+overviewWindowEntryRepresentsAccelerationGate : OverviewWindowEntry -> Bool
+overviewWindowEntryRepresentsAccelerationGate entry =
+    (entry.textsLeftToRight |> List.any (String.toLower >> String.contains "asteroid"))
+    
