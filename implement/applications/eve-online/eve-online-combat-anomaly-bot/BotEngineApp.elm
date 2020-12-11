@@ -551,13 +551,12 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                                             |> Maybe.withDefault
                                                                 (describeBranch "No drones to return." continueIfCombatComplete)
                                                     Just accelerationGateInOverview ->
-                                                        (describeBranch "Acceleration Gate Detected"
-                                                            (useContextMenuCascadeOnOverviewEntry
-                                                                (useMenuEntryWithTextContaining "Warp to Within"
-                                                                    (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
+                                                        (warpToOverviewEntryIfFarEnough context accelerationGateInOverview
+                                                            |> Maybe.withDefault
+                                                                (returnDronesToBay context.readingFromGameClient
+                                                                    |> Maybe.withDefault
+                                                                        (describeBranch "No drones to return." continueIfCombatComplete)
                                                                 )
-                                                                context.readingFromGameClient
-                                                            )
                                                         )
                                              else
                                                 describeBranch "Wait for target locking to complete." waitForProgressInGame
@@ -1090,3 +1089,28 @@ overviewWindowEntriesRepresentingAccelerationGate =
 overviewWindowEntryRepresentsAnAccelerationGate : OverviewWindowEntry -> Bool
 overviewWindowEntryRepresentsAnAccelerationGate entry =
     (entry.textsLeftToRight |> List.any (String.toLower >> String.contains "acceleration"))
+
+warpToOverviewEntryIfFarEnough : BotDecisionContext -> OverviewWindowEntry -> Maybe DecisionPathNode
+warpToOverviewEntryIfFarEnough context destinationOverviewEntry =
+    case destinationOverviewEntry.objectDistanceInMeters of
+        Ok distanceInMeters ->
+            if distanceInMeters <= 150000 then
+                Nothing
+
+            else
+                Just
+                    (describeBranch "Far enough to use Warp"
+                        (returnDronesToBay context.readingFromGameClient
+                            |> Maybe.withDefault
+                                (useContextMenuCascadeOnOverviewEntry
+                                    (useMenuEntryWithTextContaining "Warp to Within"
+                                        (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
+                                    )
+                                    destinationOverviewEntry
+                                    context.readingFromGameClient
+                                )
+                        )
+                    )
+
+        Err error ->
+            Just (describeBranch ("Failed to read the distance: " ++ error) askForHelpToGetUnstuck)
