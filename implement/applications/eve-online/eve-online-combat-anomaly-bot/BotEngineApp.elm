@@ -545,7 +545,7 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                     [] ->
                                         describeBranch "I see no overview entry to lock."
                                             (if overviewEntriesToAttack |> List.isEmpty then
-                                                case context.readingFromGameClient |> overviewWindowEntryRepresentsAccelerationGate of
+                                                case context.readingFromGameClient |> topmostAccelerationGateFromOverviewWindow of
                                                     False ->
                                                         returnDronesToBay context.readingFromGameClient
                                                             |> Maybe.withDefault
@@ -1068,7 +1068,20 @@ nothingFromIntIfGreaterThan limit originalInt =
     else
         Just originalInt
 
-overviewWindowEntryRepresentsAccelerationGate : OverviewWindowEntry -> Bool
-overviewWindowEntryRepresentsAccelerationGate entry =
-    (entry.textsLeftToRight |> List.any (String.toLower >> String.contains "asteroid"))
-    
+topmostAccelerationGateFromOverviewWindow : ReadingFromGameClient -> Maybe OverviewWindowEntry
+topmostAccelerationGateFromOverviewWindow =
+    overviewWindowEntriesRepresentingAccelerationGate
+        >> List.sortBy (.uiNode >> .totalDisplayRegion >> .y)
+        >> List.head
+
+
+overviewWindowEntriesRepresentingAccelerationGate : ReadingFromGameClient -> List OverviewWindowEntry
+overviewWindowEntriesRepresentingAccelerationGate =
+    .overviewWindow
+        >> Maybe.map (.entries >> List.filter overviewWindowEntryRepresentsAnAccelerationGate)
+        >> Maybe.withDefault []
+
+
+overviewWindowEntryRepresentsAnAccelerationGate : OverviewWindowEntry -> Bool
+overviewWindowEntryRepresentsAnAccelerationGate entry =
+    (entry.textsLeftToRight |> List.any (String.toLower >> String.contains "acceleration"))
