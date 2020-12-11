@@ -556,7 +556,6 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                                                 (useMenuEntryWithTextContaining "Warp to Within"
                                                                     (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
                                                                 )
-                                                                destinationOverviewEntry
                                                                 context.readingFromGameClient
                                                             )
                                              else
