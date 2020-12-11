@@ -551,9 +551,7 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                                             |> Maybe.withDefault
                                                                 (describeBranch "No drones to return." continueIfCombatComplete)
                                                     Just accelerationGateInOverview ->
-                                                        returnDronesToBay context.readingFromGameClient
-                                                            |> Maybe.withDefault
-                                                                (describeBranch "No drones to return." continueIfCombatComplete)
+                                                        (describeBranch "Acceleration Gate Detected")
                                              else
                                                 describeBranch "Wait for target locking to complete." waitForProgressInGame
                                             )
