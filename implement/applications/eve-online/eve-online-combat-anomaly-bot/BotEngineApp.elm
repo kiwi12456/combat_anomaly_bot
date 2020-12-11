@@ -1074,7 +1074,6 @@ targetAccelerationGate context overviewEntriesToAttack continueIfCombatComplete 
                 (useContextMenuCascade
                     ( "target", Maybe.withDefault accelerationGateInOverview.uiNode )
                     (useMenuEntryWithTextContaining "Activate Gate" menuCascadeCompleted)
-                    context.readingFromGameClient
                 )
 
 
