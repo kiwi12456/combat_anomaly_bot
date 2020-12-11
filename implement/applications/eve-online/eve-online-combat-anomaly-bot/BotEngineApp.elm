@@ -1056,7 +1056,7 @@ nothingFromIntIfGreaterThan limit originalInt =
     else
         Just originalInt
 
-targetAccelerationGate : BotDecisionContext -> OverviewWindowEntry -> DecisionPathNode -> DecisionPathNode
+targetAccelerationGate : BotDecisionContext -> List OverviewWindowEntry -> DecisionPathNode -> DecisionPathNode
 targetAccelerationGate context overviewEntriesToAttack continueIfCombatComplete =
     case context.readingFromGameClient |> topmostAccelerationGateFromOverviewWindow of
         Nothing ->
