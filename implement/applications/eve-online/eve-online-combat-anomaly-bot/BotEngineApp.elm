@@ -1070,7 +1070,7 @@ targetAccelerationGate context overviewEntriesToAttack continueIfCombatComplete 
             )
 
         Just accelerationGateInOverview ->
-            describeBranch ("Acceleration Gate detected")
+            describeBranch "Acceleration Gate detected"
                 (warpToOverviewEntryIfFarEnough context accelerationGateInOverview)
 
 
