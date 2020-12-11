@@ -91,7 +91,7 @@ defaultBotSettings =
     , anomalyNames = []
     , ratsToAvoid = []
     , maxTargetCount = 3
-    , botStepDelayMilliseconds = 3500
+    , botStepDelayMilliseconds = 1400
     }
 
 
