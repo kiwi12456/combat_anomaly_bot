@@ -461,6 +461,7 @@ decideNextActionWhenInSpace context seeUndockingComplete =
                             Nothing ->
                                 describeBranch "Looks like we are not in an anomaly." returnDronesAndEnterAnomalyOrWait
                             Just accelerationGateInOverview ->
+                                Maybe.withDefault
                                 (warpToOverviewEntryIfFarEnough context accelerationGateInOverview)
                         
 
