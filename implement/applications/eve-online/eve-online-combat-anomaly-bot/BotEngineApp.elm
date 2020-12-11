@@ -91,7 +91,7 @@ defaultBotSettings =
     , anomalyNames = []
     , ratsToAvoid = []
     , maxTargetCount = 3
-    , botStepDelayMilliseconds = 1400
+    , botStepDelayMilliseconds = 3000
     }
 
 
@@ -511,11 +511,6 @@ combat context seeUndockingComplete continueIfCombatComplete =
             seeUndockingComplete.overviewWindow.entries
                 |> List.sortBy (.objectDistanceInMeters >> Result.withDefault 999999)
                 |> List.filter shouldAttackOverviewEntry
-        
-        overviewEntriesAccelerationGate =
-            seeUndockingComplete.overviewWindow.entries
-                |> List.sortBy (.objectDistanceInMeters >> Result.withDefault 999999)
-                |> List.any (String.toLower >> String.contains "acceleration gate")
 
         overviewEntriesToLock =
             overviewEntriesToAttack
@@ -549,21 +544,7 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                 (case overviewEntriesToLock of
                                     [] ->
                                         describeBranch "I see no overview entry to lock."
-                                                (if overviewEntriesToAttack |> List.isEmpty then
-                                                    case overviewEntriesAccelerationGate |> List.head of
-                                                        Nothing ->
-                                                            returnDronesToBay context.readingFromGameClient
-                                                                |> Maybe.withDefault
-                                                                    (describeBranch "No drones to return." continueIfCombatComplete)
-                                                        Just accelerationGate ->
-                                                            describeBranch "Warp to anomaly."
-                                                                (useContextMenuCascade
-                                                                    ( "Acceleration Gate", accelerationGate.uiNode )
-                                                                    (useMenuEntryWithTextContaining "Activate Gate")
-                                                                )
-                                                else
-                                                    describeBranch "Wait for target locking to complete." waitForProgressInGame
-                                                )
+                                            (targetAccelerationGate context overviewEntriesToAttack)
 
                                     nextOverviewEntryToLock :: _ ->
                                         describeBranch "I see an overview entry to lock."
@@ -1074,3 +1055,63 @@ nothingFromIntIfGreaterThan limit originalInt =
 
     else
         Just originalInt
+
+targetAccelerationGate : BotDecisionContext -> DecisionPathNode
+targetAccelerationGate context overviewEntriesToAttack =
+    case context.readingFromGameClient |> topmostAccelerationGateFromOverviewWindow of
+        Nothing ->
+            (if overviewEntriesToAttack |> List.isEmpty then
+                returnDronesToBay context.readingFromGameClient
+                    |> Maybe.withDefault
+                        (describeBranch "No drones to return." continueIfCombatComplete)
+
+                else
+                describeBranch "Wait for target locking to complete." waitForProgressInGame
+            )
+
+        Just accelerationGateInOverview ->
+            describeBranch ("Acceleration Gate detected")
+                (warpToOverviewEntryIfFarEnough context accelerationGateInOverview)
+
+
+topmostAccelerationGateFromOverviewWindow : ReadingFromGameClient -> Maybe OverviewWindowEntry
+topmostAccelerationGateFromOverviewWindow =
+    overviewWindowEntriesRepresentingAccelerationGate
+        >> List.sortBy (.uiNode >> .totalDisplayRegion >> .y)
+        >> List.head
+
+
+overviewWindowEntriesRepresentingAccelerationGate : ReadingFromGameClient -> List OverviewWindowEntry
+overviewWindowEntriesRepresentingAccelerationGate =
+    .overviewWindow
+        >> Maybe.map (.entries >> List.filter overviewWindowEntryRepresentsAnAccelerationGate)
+        >> Maybe.withDefault []
+
+
+overviewWindowEntryRepresentsAnAccelerationGate : OverviewWindowEntry -> Bool
+overviewWindowEntryRepresentsAnAccelerationGate entry =
+    (entry.textsLeftToRight |> List.any (String.toLower >> String.contains "acceleration gate"))
+
+warpToOverviewEntryIfFarEnough : BotDecisionContext -> OverviewWindowEntry -> Maybe DecisionPathNode
+warpToOverviewEntryIfFarEnough context destinationOverviewEntry =
+    case destinationOverviewEntry.objectDistanceInMeters of
+        Ok distanceInMeters ->
+            if distanceInMeters > 150000 then
+                Nothing
+
+            else
+                Just
+                    (describeBranch "Far enough to use Warp"
+                        (returnDronesToBay context.readingFromGameClient
+                            |> Maybe.withDefault
+                                (useContextMenuCascadeOnOverviewEntry
+                                    (useMenuEntryWithTextContaining "Activate Gate" menuCascadeCompleted)
+                                    destinationOverviewEntry
+                                    context.readingFromGameClient
+                                )
+                        )
+                    )
+
+        Err error ->
+            Just (describeBranch ("Failed to read the distance: " ++ error) askForHelpToGetUnstuck)
+            
