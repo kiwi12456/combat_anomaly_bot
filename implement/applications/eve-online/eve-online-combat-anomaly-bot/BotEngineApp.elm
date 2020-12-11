@@ -1107,7 +1107,7 @@ warpToOverviewEntryIfFarEnough context destinationOverviewEntry =
                                 (useContextMenuCascadeOnOverviewEntry
                                     (useMenuEntryWithTextContaining "Activate Gate" menuCascadeCompleted)
                                     destinationOverviewEntry
-                                    context.readingFromGameClient
+                                    -- context.readingFromGameClient
                                 )
                         )
                     )
