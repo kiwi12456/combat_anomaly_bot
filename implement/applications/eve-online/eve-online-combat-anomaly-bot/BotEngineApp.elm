@@ -544,7 +544,7 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                 (case overviewEntriesToLock of
                                     [] ->
                                         describeBranch "I see no overview entry to lock."
-                                            (targetAccelerationGate context overviewEntriesToAttack)
+                                            (targetAccelerationGate context overviewEntriesToAttack continueIfCombatComplete)
 
                                     nextOverviewEntryToLock :: _ ->
                                         describeBranch "I see an overview entry to lock."
@@ -1056,8 +1056,8 @@ nothingFromIntIfGreaterThan limit originalInt =
     else
         Just originalInt
 
-targetAccelerationGate : BotDecisionContext -> OverviewWindowEntry -> DecisionPathNode
-targetAccelerationGate context overviewEntriesToAttack =
+targetAccelerationGate : BotDecisionContext -> OverviewWindowEntry -> DecisionPathNode -> DecisionPathNode
+targetAccelerationGate context overviewEntriesToAttack continueIfCombatComplete =
     case context.readingFromGameClient |> topmostAccelerationGateFromOverviewWindow of
         Nothing ->
             (if overviewEntriesToAttack |> List.isEmpty then
