@@ -457,7 +457,19 @@ decideNextActionWhenInSpace context seeUndockingComplete =
                 in
                 case context.readingFromGameClient |> getCurrentAnomalyIDAsSeenInProbeScanner of
                     Nothing ->
-                        describeBranch "Looks like we are not in an anomaly." returnDronesAndEnterAnomalyOrWait
+                        case context.readingFromGameClient |> topmostAccelerationGateFromOverviewWindow of
+                            Nothing ->
+                                describeBranch "Looks like we are not in an anomaly." returnDronesAndEnterAnomalyOrWait
+                            Just accelerationGateInOverview ->
+                                describeBranch "Acceleration Gate Found! Entering..."
+                                (warpToOverviewEntryIfFarEnough context accelerationGateInOverview
+                                    |> Maybe.withDefault
+                                        (returnDronesToBay context.readingFromGameClient
+                                            |> Maybe.withDefault
+                                                (describeBranch "No drones to return." continueIfCombatComplete)
+                                        )
+                                )
+                        
 
                     Just anomalyID ->
                         describeBranch ("We are in anomaly '" ++ anomalyID ++ "'")
