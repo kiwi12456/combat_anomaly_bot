@@ -1100,7 +1100,7 @@ warpToOverviewEntryIfFarEnough context destinationOverviewEntry =
     case destinationOverviewEntry.objectDistanceInMeters of
         Ok distanceInMeters ->
             Just
-                (describeBranch "Far enough to use Warp"
+                (describeBranch "Acceleration Gate Found. Entering..."
                     (returnDronesToBay context.readingFromGameClient
                         |> Maybe.withDefault
                             (useContextMenuCascadeOnOverviewEntry
