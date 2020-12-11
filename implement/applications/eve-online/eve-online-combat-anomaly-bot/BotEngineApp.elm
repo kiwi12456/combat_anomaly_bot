@@ -1103,11 +1103,8 @@ warpToOverviewEntryIfFarEnough context destinationOverviewEntry =
                         (returnDronesToBay context.readingFromGameClient
                             |> Maybe.withDefault
                                 (useContextMenuCascadeOnOverviewEntry
-                                    (useMenuEntryWithTextContaining "Warp to Within"
-                                        (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
-                                    )
-                                    destinationOverviewEntry
-                                    context.readingFromGameClient
+                                    (useMenuEntryWithTextEqual "Lock target" menuCascadeCompleted)
+                                    overviewEntry
                                 )
                         )
                     )
