@@ -512,7 +512,7 @@ combat context seeUndockingComplete continueIfCombatComplete =
                 |> List.sortBy (.objectDistanceInMeters >> Result.withDefault 999999)
                 |> List.filter shouldAttackOverviewEntry
         
-        overviewEntriesAccelerationGate
+        overviewEntriesAccelerationGate =
             seeUndockingComplete.overviewWindow.entries
                 |> List.sortBy (.objectDistanceInMeters >> Result.withDefault 999999)
                 |> List.any (String.toLower >> String.contains "acceleration gate")
