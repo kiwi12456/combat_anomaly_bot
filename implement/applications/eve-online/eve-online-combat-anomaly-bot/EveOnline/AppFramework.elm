@@ -1061,7 +1061,7 @@ stringEllipsis howLong append string =
 secondsToSessionEnd : AppEventContext a -> Maybe Int
 secondsToSessionEnd appEventContext =
     appEventContext.sessionTimeLimitInMilliseconds
-        |> Maybe.map (\sessionTimeLimitInMilliseconds -> (sessionTimeLimitInMilliseconds - appEventContext.timeInMilliseconds) // 1000)
+        |> Maybe.map (\sessionTimeLimitInMilliseconds -> (sessionTimeLimitInMilliseconds - 0) // 1000)
 
 
 clickOnUIElement : Common.EffectOnWindow.MouseButton -> UIElement -> List Common.EffectOnWindow.EffectOnWindowStructure
