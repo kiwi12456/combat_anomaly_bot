@@ -1104,7 +1104,7 @@ warpToOverviewEntryIfFarEnough context destinationOverviewEntry =
                             |> Maybe.withDefault
                                 (useContextMenuCascadeOnOverviewEntry
                                     (useMenuEntryWithTextEqual "Lock target" menuCascadeCompleted)
-                                    overviewEntry
+                                    destinationOverviewEntry
                                 )
                         )
                     )
