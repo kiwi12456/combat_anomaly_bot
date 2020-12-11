@@ -6,6 +6,7 @@ module Common.EffectOnWindow exposing (..)
 
 type EffectOnWindowStructure
     = MouseMoveTo Location2d
+    | SimpleMouseClickAtLocation MouseClickAtLocation
     | KeyDown VirtualKeyCode
     | KeyUp VirtualKeyCode
 
@@ -31,10 +32,7 @@ type MouseButton
 
 effectsMouseClickAtLocation : MouseButton -> Location2d -> List EffectOnWindowStructure
 effectsMouseClickAtLocation mouseButton location =
-    [ MouseMoveTo location
-    , KeyDown (virtualKeyCodeFromMouseButton mouseButton)
-    , KeyUp (virtualKeyCodeFromMouseButton mouseButton)
-    ]
+    [ SimpleMouseClickAtLocation { location = location, mouseButton = mouseButton } ]
 
 
 effectsForDragAndDrop : { startLocation : Location2d, mouseButton : MouseButton, endLocation : Location2d } -> List EffectOnWindowStructure

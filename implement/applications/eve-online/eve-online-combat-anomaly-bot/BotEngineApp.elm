@@ -1,7 +1,10 @@
 {- EVE Online - Allan MacGregor - BrianCorner - combat anomaly bot version 2020-09-20
    farm anomalies in a given route of systems: https://forum.botengine.org/t/ratting-anomalies/3585
+
    This bot uses the probe scanner to warp to combat anomalies and kills rats using drones and weapon modules.
+
    Setup instructions for the EVE Online client:
+
    + Set the UI language to English.
    + Undock, open probe scanner, overview window and drones window.
    + Set the Overview window to sort objects in space by distance with the nearest entry at the top.
@@ -10,13 +13,18 @@
      + Place modules that should always be active in the middle row.
      + Hide passive modules by disabling the check-box `Display Passive Modules`.
    + Configure the keyboard key 'W' to make the ship orbit.
+
    ## Configuration Settings
+
    All settings are optional; you only need them in case the defaults don't fit your use-case.
+
    + `anomaly-name` : Choose the name of anomalies to take. You can use this setting multiple times to select multiple names.
    + `hide-when-neutral-in-local` : Set this to 'yes' to make the bot dock in a station or structure when a neutral or hostile appears in the 'local' chat.
    + `rat-to-avoid` : Name of a rat to avoid, as it appears in the overview. You can use this setting multiple times to select multiple names.
+
    When using more than one setting, start a new line for each setting in the text input field.
    Here is an example of a complete settings string:
+
    anomaly-name = Drone Patrol
    anomaly-name = Drone Horde
    hide-when-neutral-in-local = yes

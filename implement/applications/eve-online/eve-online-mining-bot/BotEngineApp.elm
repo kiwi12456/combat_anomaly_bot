@@ -1,6 +1,30 @@
-{- Stephan Fuchs EVE Online mining bot version 2020-10-31
-   Merge as described at https://forum.botengine.org/t/eve-online-request-suggestion/3663
-   Merged change to drones from app https://catalog.botengine.org/813iHfbf1q7yRneJPNzxGTWEZRtMHyitqxb42a81dddd0e992a0d9db1fce92da2
+{- EVE Online mining bot version 2020-08-27
+   The bot warps to an asteroid belt, mines there until the ore hold is full, and then docks at a station or structure to unload the ore. It then repeats this cycle until you stop it.
+   If no station name or structure name is given with the app-settings, the bot docks again at the station where it was last docked.
+
+   Setup instructions for the EVE Online client:
+
+   + Set the UI language to English.
+   + In Overview window, make asteroids visible.
+   + Set the Overview window to sort objects in space by distance with the nearest entry at the top.
+   + Open one inventory window.
+   + If you want to use drones for defense against rats, place them in the drone bay, and open the 'Drones' window.
+
+   ## Configuration Settings
+
+   All settings are optional; you only need them in case the defaults don't fit your use-case.
+
+   + `unload-station-name` : Name of a station to dock to when the ore hold is full.
+   + `unload-structure-name` : Name of a structure to dock to when the ore hold is full.
+   + `module-to-activate-always` : Text found in tooltips of ship modules that should always be active. For example: "shield hardener".
+   + `hide-when-neutral-in-local` : Should we hide when a neutral or hostile pilot appears in the local chat? The only supported values are `no` and `yes`.
+
+   When using more than one setting, start a new line for each setting in the text input field.
+   Here is an example of a complete settings string:
+
+   unload-station-name = Noghere VII - Moon 15
+   module-to-activate-always = shield hardener
+   module-to-activate-always = afterburner
 -}
 {-
    app-catalog-tags:eve-online,mining
@@ -33,7 +57,6 @@ import EveOnline.AppFramework
         , askForHelpToGetUnstuck
         , branchDependingOnDockedOrInSpace
         , clickOnUIElement
-        , doEffectsClickModuleButton
         , ensureInfoPanelLocationInfoIsExpanded
         , getEntropyIntFromReadingFromGameClient
         , localChatWindowFromUserInterface
@@ -59,18 +82,20 @@ import Regex
 
 
 {-| Sources for the defaults:
+
   - <https://forum.botengine.org/t/mining-bot-wont-approach/3162>
+
 -}
 defaultBotSettings : BotSettings
 defaultBotSettings =
-    { runAwayShieldHitpointsThresholdPercent = 30
+    { runAwayShieldHitpointsThresholdPercent = 70
     , unloadStationName = Nothing
     , unloadStructureName = Nothing
     , modulesToActivateAlways = []
     , hideWhenNeutralInLocal = Nothing
     , targetingRange = 8000
     , miningModuleRange = 5000
-    , botStepDelayMilliseconds = 4000
+    , botStepDelayMilliseconds = 2000
     , oreHoldMaxPercent = 99
     , selectInstancePilotName = Nothing
     }
@@ -248,7 +273,7 @@ returnDronesAndRunAwayIfHitpointsAreTooLow context shipUI =
         runAwayWithDescription =
             describeBranch
                 ("Shield hitpoints are at " ++ (shipUI.hitpointsPercent.shield |> String.fromInt) ++ "%. Run away.")
-                (dockToUnloadOre context)
+                (runAway context)
     in
     if shipUI.hitpointsPercent.shield < context.eventContext.appSettings.runAwayShieldHitpointsThresholdPercent then
         Just runAwayWithDescription
@@ -378,7 +403,11 @@ inSpaceWithOreHoldSelected context seeUndockingComplete inventoryWindowWithOreHo
         case context |> knownModulesToActivateAlways |> List.filter (Tuple.second >> .isActive >> Maybe.withDefault False >> not) |> List.head of
             Just ( inactiveModuleMatchingText, inactiveModule ) ->
                 describeBranch ("I see inactive module '" ++ inactiveModuleMatchingText ++ "' to activate always. Activate it.")
-                    (clickModuleButtonButWaitIfClickedInPreviousStep context inactiveModule)
+                    (endDecisionPath
+                        (actWithoutFurtherReadings
+                            ( "Click on the module.", inactiveModule.uiNode |> clickOnUIElement MouseButtonLeft )
+                        )
+                    )
 
             Nothing ->
                 case inventoryWindowWithOreHoldSelected |> capacityGaugeUsedPercent of
@@ -414,15 +443,18 @@ inSpaceWithOreHoldSelected context seeUndockingComplete inventoryWindowWithOreHo
                                                         Nothing ->
                                                             describeBranch "All known mining modules are active."
                                                                 (readShipUIModuleButtonTooltips context
-                                                                    |> Maybe.withDefault
-                                                                        (launchDronesAndSendThemToMine context.readingFromGameClient
-                                                                            |> Maybe.withDefault waitForProgressInGame
-                                                                        )
+                                                                    |> Maybe.withDefault waitForProgressInGame
                                                                 )
 
                                                         Just inactiveModule ->
                                                             describeBranch "I see an inactive mining module. Activate it."
-                                                                (clickModuleButtonButWaitIfClickedInPreviousStep context inactiveModule)
+                                                                (endDecisionPath
+                                                                    (actWithoutFurtherReadings
+                                                                        ( "Click on the module."
+                                                                        , inactiveModule.uiNode |> clickOnUIElement MouseButtonLeft
+                                                                        )
+                                                                    )
+                                                                )
                                                     )
                                                 )
                                 )
@@ -447,7 +479,6 @@ unlockTargetsNotForMining context =
                     (useContextMenuCascade
                         ( "target", targetToUnlock.barAndImageCont |> Maybe.withDefault targetToUnlock.uiNode )
                         (useMenuEntryWithTextContaining "unlock" menuCascadeCompleted)
-                        context.readingFromGameClient
                     )
             )
 
@@ -496,7 +527,6 @@ warpToOverviewEntryIfFarEnough context destinationOverviewEntry =
                                         (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
                                     )
                                     destinationOverviewEntry
-                                    context.readingFromGameClient
                                 )
                         )
                     )
@@ -568,7 +598,7 @@ lockTargetFromOverviewEntryAndEnsureIsInRange readingFromGameClient rangeInMeter
 
                 else
                     describeBranch "Object is in range. Lock target."
-                        (lockTargetFromOverviewEntry overviewEntry readingFromGameClient)
+                        (lockTargetFromOverviewEntry overviewEntry)
 
             else
                 describeBranch ("Object is not in range (" ++ (distanceInMeters |> String.fromInt) ++ " meters away). Approach.")
@@ -579,20 +609,18 @@ lockTargetFromOverviewEntryAndEnsureIsInRange readingFromGameClient rangeInMeter
                         useContextMenuCascadeOnOverviewEntry
                             (useMenuEntryWithTextContaining "approach" menuCascadeCompleted)
                             overviewEntry
-                            readingFromGameClient
                     )
 
         Err error ->
             describeBranch ("Failed to read the distance: " ++ error) askForHelpToGetUnstuck
 
 
-lockTargetFromOverviewEntry : OverviewWindowEntry -> ReadingFromGameClient -> DecisionPathNode
-lockTargetFromOverviewEntry overviewEntry readingFromGameClient =
+lockTargetFromOverviewEntry : OverviewWindowEntry -> DecisionPathNode
+lockTargetFromOverviewEntry overviewEntry =
     describeBranch ("Lock target from overview entry '" ++ (overviewEntry.objectName |> Maybe.withDefault "") ++ "'")
         (useContextMenuCascadeOnOverviewEntry
             (useMenuEntryWithTextEqual "Lock target" menuCascadeCompleted)
             overviewEntry
-            readingFromGameClient
         )
 
 
@@ -619,11 +647,8 @@ dockToStationOrStructureWithMatchingName { prioritizeStructures, nameFromSetting
     in
     matchingOverviewEntry
         |> Maybe.map
-            (\entry ->
-                EveOnline.AppFramework.useContextMenuCascadeOnOverviewEntry
-                    (useMenuEntryWithTextContaining "dock" menuCascadeCompleted)
-                    entry
-                    readingFromGameClient
+            (EveOnline.AppFramework.useContextMenuCascadeOnOverviewEntry
+                (useMenuEntryWithTextContaining "dock" menuCascadeCompleted)
             )
         |> Maybe.withDefault
             (overviewWindowScrollControls
@@ -681,11 +706,14 @@ scrollDown scrollControls =
 
 
 {-| Prepare a station name or structure name coming from app-settings for comparing with menu entries.
+
   - The user could take the name from the info panel:
     The names sometimes differ between info panel and menu entries: 'Moon 7' can become 'M7'.
+
   - Do not distinguish between the comma and period characters:
     Besides the similar visual appearance, also because of the limitations of popular app-settings parsing frameworks.
     The user can remove a comma or replace it with a full stop/period, whatever looks better.
+
 -}
 simplifyStationOrStructureNameFromSettingsBeforeComparingToMenuEntry : String -> String
 simplifyStationOrStructureNameFromSettingsBeforeComparingToMenuEntry =
@@ -720,9 +748,11 @@ warpToMiningSite : ReadingFromGameClient -> DecisionPathNode
 warpToMiningSite readingFromGameClient =
     readingFromGameClient
         |> useContextMenuCascadeOnListSurroundingsButton
-            (useMenuEntryWithTextContaining "location"
+            (useMenuEntryWithTextContaining "asteroid belts"
                 (useRandomMenuEntry
-                    (useMenuEntryWithTextContaining "Warp to Location Within 0 m" menuCascadeCompleted)
+                    (useMenuEntryWithTextContaining "Warp to Within"
+                        (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
+                    )
                 )
             )
 
@@ -780,54 +810,7 @@ launchDrones readingFromGameClient =
                                 (describeBranch "Launch drones"
                                     (useContextMenuCascade
                                         ( "drones group", droneGroupInBay.header.uiNode )
-                                        (useMenuEntryWithTextContaining "Launch drones" menuCascadeCompleted)
-                                        readingFromGameClient
-                                    )
-                                )
-
-                        else
-                            Nothing
-
-                    _ ->
-                        Nothing
-            )
-
-
-launchDronesAndSendThemToMine : ReadingFromGameClient -> Maybe DecisionPathNode
-launchDronesAndSendThemToMine readingFromGameClient =
-    readingFromGameClient.dronesWindow
-        |> Maybe.andThen
-            (\dronesWindow ->
-                case ( dronesWindow.droneGroupInBay, dronesWindow.droneGroupInLocalSpace ) of
-                    ( Just droneGroupInBay, Just droneGroupInLocalSpace ) ->
-                        let
-                            idlingDrones =
-                                droneGroupInLocalSpace.drones
-                                    |> List.filter (.uiNode >> .uiNode >> EveOnline.ParseUserInterface.getAllContainedDisplayTexts >> List.any (String.toLower >> String.contains "idle"))
-
-                            dronesInBayQuantity =
-                                droneGroupInBay.header.quantityFromTitle |> Maybe.withDefault 0
-
-                            dronesInLocalSpaceQuantity =
-                                droneGroupInLocalSpace.header.quantityFromTitle |> Maybe.withDefault 0
-                        in
-                        if 0 < (idlingDrones |> List.length) then
-                            Just
-                                (describeBranch "Send idling drone(s)"
-                                    (useContextMenuCascade
-                                        ( "drones group", droneGroupInLocalSpace.header.uiNode )
-                                        (useMenuEntryWithTextContaining "mine" menuCascadeCompleted)
-                                        readingFromGameClient
-                                    )
-                                )
-
-                        else if 0 < dronesInBayQuantity && dronesInLocalSpaceQuantity < 5 then
-                            Just
-                                (describeBranch "Launch drones"
-                                    (useContextMenuCascade
-                                        ( "drones group", droneGroupInBay.header.uiNode )
-                                        (useMenuEntryWithTextContaining "Launch drones" menuCascadeCompleted)
-                                        readingFromGameClient
+                                        (useMenuEntryWithTextContaining "Launch drone" menuCascadeCompleted)
                                     )
                                 )
 
@@ -854,7 +837,6 @@ returnDronesToBay readingFromGameClient =
                             (useContextMenuCascade
                                 ( "drones group", droneGroupInLocalSpace.header.uiNode )
                                 (useMenuEntryWithTextContaining "Return to drone bay" menuCascadeCompleted)
-                                readingFromGameClient
                             )
                         )
             )
@@ -968,7 +950,7 @@ statusTextFromState context =
 
         describeSessionPerformance =
             [ ( "times unloaded", context.memory.timesUnloaded )
-            , ( "volume unloaded / m©ø", context.memory.volumeUnloadedCubicMeters )
+            , ( "volume unloaded / m³", context.memory.volumeUnloadedCubicMeters )
             ]
                 |> List.map (\( metric, amount ) -> metric ++ ": " ++ (amount |> String.fromInt))
                 |> String.join ", "
@@ -1087,20 +1069,6 @@ updateMemoryForNewReadingFromGame currentReading botMemoryBefore =
         botMemoryBefore.shipModules
             |> EveOnline.AppFramework.integrateCurrentReadingsIntoShipModulesMemory currentReading
     }
-
-
-clickModuleButtonButWaitIfClickedInPreviousStep : BotDecisionContext -> EveOnline.ParseUserInterface.ShipUIModuleButton -> DecisionPathNode
-clickModuleButtonButWaitIfClickedInPreviousStep context moduleButton =
-    if doEffectsClickModuleButton moduleButton context.previousStepEffects then
-        describeBranch "Already clicked on this module button in previous step." waitForProgressInGame
-
-    else
-        endDecisionPath
-            (actWithoutFurtherReadings
-                ( "Click on this module button."
-                , moduleButton.uiNode |> clickOnUIElement MouseButtonLeft
-                )
-            )
 
 
 activeShipTreeEntryFromInventoryWindow : EveOnline.ParseUserInterface.InventoryWindow -> Maybe EveOnline.ParseUserInterface.InventoryWindowLeftTreeEntry
