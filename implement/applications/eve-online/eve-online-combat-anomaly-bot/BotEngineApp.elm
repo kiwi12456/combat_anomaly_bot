@@ -551,17 +551,16 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                         describeBranch "I see no overview entry to lock."
                                                 (if overviewEntriesToAttack |> List.isEmpty then
                                                     case overviewEntriesAccelerationGate |> List.head of
-                                                    Nothing ->
-                                                        returnDronesToBay context.readingFromGameClient
-                                                            |> Maybe.withDefault
-                                                                (describeBranch "No drones to return." continueIfCombatComplete)
-                                                    Just accelerationGate ->
-                                                        describeBranch "Warp to anomaly."
-                                                            (useContextMenuCascade
-                                                                ( "Acceleration Gate", accelerationGate.uiNode )
-                                                                (useMenuEntryWithTextContaining "Activate Gate")
-                                                            )
-                                                        
+                                                        Nothing ->
+                                                            returnDronesToBay context.readingFromGameClient
+                                                                |> Maybe.withDefault
+                                                                    (describeBranch "No drones to return." continueIfCombatComplete)
+                                                        Just accelerationGate ->
+                                                            describeBranch "Warp to anomaly."
+                                                                (useContextMenuCascade
+                                                                    ( "Acceleration Gate", accelerationGate.uiNode )
+                                                                    (useMenuEntryWithTextContaining "Activate Gate")
+                                                                )
                                                 else
                                                     describeBranch "Wait for target locking to complete." waitForProgressInGame
                                                 )
@@ -914,15 +913,6 @@ shouldAttackOverviewEntry : EveOnline.ParseUserInterface.OverviewWindowEntry -> 
 shouldAttackOverviewEntry =
     iconSpriteHasColorOfRat
 
-accelerationGateOverviewEntry : EveOnline.ParseUserInterface.OverviewWindowEntry -> Bool
-accelerationGateOverviewEntry =
-    overviewWindowEntryRepresentsAnAccelerationGate
-
-
-overviewWindowEntryRepresentsAnAsteroid : OverviewWindowEntry -> Bool
-overviewWindowEntryRepresentsAnAsteroid entry =
-    (entry.textsLeftToRight |> List.any (String.toLower >> String.contains "asteroid"))
-        && (entry.textsLeftToRight |> List.any (String.toLower >> String.contains "belt") |> not)
 
 moduleIsActiveOrReloading : EveOnline.ParseUserInterface.ShipUIModuleButton -> Bool
 moduleIsActiveOrReloading moduleButton =
