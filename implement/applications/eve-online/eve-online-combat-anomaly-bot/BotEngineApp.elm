@@ -550,7 +550,7 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                                         returnDronesToBay context.readingFromGameClient
                                                             |> Maybe.withDefault
                                                                 (describeBranch "No drones to return." continueIfCombatComplete)
-                                                    Just ->
+                                                    Just accelerationGateInOverview ->
                                                         returnDronesToBay context.readingFromGameClient
                                                             |> Maybe.withDefault
                                                                 (describeBranch "No drones to return." continueIfCombatComplete)
