@@ -551,13 +551,9 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                                             |> Maybe.withDefault
                                                                 (describeBranch "No drones to return." continueIfCombatComplete)
                                                     True ->
-                                                        Maybe.withDefault
-                                                            (useContextMenuCascadeOnOverviewEntry
-                                                                (useMenuEntryWithTextContaining "Warp to Within"
-                                                                    (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
-                                                                )
-                                                                context.readingFromGameClient
-                                                            )
+                                                        returnDronesToBay context.readingFromGameClient
+                                                            |> Maybe.withDefault
+                                                                (describeBranch "No drones to return." continueIfCombatComplete)
                                              else
                                                 describeBranch "Wait for target locking to complete." waitForProgressInGame
                                             )
