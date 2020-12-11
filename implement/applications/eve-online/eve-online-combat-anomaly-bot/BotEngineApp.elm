@@ -552,8 +552,10 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                                                 (describeBranch "No drones to return." continueIfCombatComplete)
                                                     Just accelerationGateInOverview ->
                                                         (describeBranch "Acceleration Gate Detected"
-                                                            (useContextMenuCascade
-                                                                (useMenuEntryWithTextContaining "unlock" menuCascadeCompleted)
+                                                            (useContextMenuCascadeOnOverviewEntry
+                                                                (useMenuEntryWithTextContaining "Warp to Within"
+                                                                    (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
+                                                                )
                                                                 context.readingFromGameClient
                                                             )
                                                         )
