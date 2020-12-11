@@ -546,11 +546,11 @@ combat context seeUndockingComplete continueIfCombatComplete =
                                         describeBranch "I see no overview entry to lock."
                                             (if overviewEntriesToAttack |> List.isEmpty then
                                                 case context.readingFromGameClient |> topmostAccelerationGateFromOverviewWindow of
-                                                    False ->
+                                                    Nothing ->
                                                         returnDronesToBay context.readingFromGameClient
                                                             |> Maybe.withDefault
                                                                 (describeBranch "No drones to return." continueIfCombatComplete)
-                                                    True ->
+                                                    Just ->
                                                         returnDronesToBay context.readingFromGameClient
                                                             |> Maybe.withDefault
                                                                 (describeBranch "No drones to return." continueIfCombatComplete)
