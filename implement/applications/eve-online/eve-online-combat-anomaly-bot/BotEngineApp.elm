@@ -1072,10 +1072,9 @@ targetAccelerationGate context overviewEntriesToAttack continueIfCombatComplete 
         Just accelerationGateInOverview ->
             describeBranch "Acceleration Gate detected"
                 (useContextMenuCascade
-                    ( "target", Maybe.withDefault accelerationGateInOverview.uiNode )
+                    ( "target", accelerationGateInOverview.barAndImageCont |> Maybe.withDefault accelerationGateInOverview.uiNode )
                     (useMenuEntryWithTextContaining "Activate Gate" menuCascadeCompleted)
                 )
-
 
 topmostAccelerationGateFromOverviewWindow : ReadingFromGameClient -> Maybe OverviewWindowEntry
 topmostAccelerationGateFromOverviewWindow =
