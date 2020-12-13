@@ -433,12 +433,42 @@ decideNextActionWhenInSpace context seeUndockingComplete =
     else
         case seeUndockingComplete |> shipUIModulesToActivateAlways |> List.filter (moduleIsActiveOrReloading >> not) |> List.head of
             Just inactiveModule ->
-                describeBranch "I see an inactive module in the middle row. Activate the module."
-                    (endDecisionPath
-                        (actWithoutFurtherReadings
-                            ( "Click on the module.", inactiveModule.uiNode |> clickOnUIElement MouseButtonLeft )
-                        )
-                    )
+                let
+                    returnDronesAndEnterAnomaly { ifNoAcceptableAnomalyAvailable } =
+                        returnDronesToBay context.readingFromGameClient
+                            |> Maybe.withDefault
+                                (describeBranch "No drones to return."
+                                    (enterAnomaly { ifNoAcceptableAnomalyAvailable = ifNoAcceptableAnomalyAvailable } context)
+                                )
+
+                    returnDronesAndEnterAnomalyOrWait =
+                        returnDronesAndEnterAnomaly
+                            { ifNoAcceptableAnomalyAvailable =
+                                describeBranch "I do not see a matching anomaly." (autopilotBotDecisionRoot context)
+                            }
+                in
+                case context.readingFromGameClient |> getCurrentAnomalyIDAsSeenInProbeScanner of
+                    Nothing ->
+                        describeBranch "Looks like we are not in an anomaly." returnDronesAndEnterAnomalyOrWait
+
+                    Just anomalyID ->
+                        describeBranch ("We are in anomaly '" ++ anomalyID ++ "'")
+                            (case findReasonToAvoidAnomalyFromMemory context { anomalyID = anomalyID } of
+                                Just reasonToAvoidAnomaly ->
+                                    describeBranch
+                                        ("Found a reason to avoid this anomaly: "
+                                            ++ describeReasonToAvoidAnomaly reasonToAvoidAnomaly
+                                        )
+                                        (returnDronesAndEnterAnomaly
+                                            { ifNoAcceptableAnomalyAvailable =
+                                                describeBranch "Get out of this anomaly."
+                                                    (dockAtRandomStationOrStructure context.readingFromGameClient)
+                                            }
+                                        )
+
+                                Nothing ->
+                                    combat context seeUndockingComplete returnDronesAndEnterAnomalyOrWait
+                            )
 
             Nothing ->
                 let
@@ -624,7 +654,7 @@ enterAnomaly { ifNoAcceptableAnomalyAvailable } context =
                         (useContextMenuCascade
                             ( "Scan result", anomalyScanResult.uiNode )
                             (useMenuEntryWithTextContaining "Warp to Within"
-                                (useMenuEntryWithTextContaining "Within 0 m" menuCascadeCompleted)
+                                (useMenuEntryWithTextContaining "Within 70 km" menuCascadeCompleted)
                             )
                         )
 
